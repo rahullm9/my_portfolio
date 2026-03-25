@@ -1,12 +1,12 @@
 <div align="center">
 
-  <img src="public/profile.png" alt="Rahul's Portfolio" width="120" style="border-radius: 50%;" />
+  <img src="public/project1.png" alt="Rahul's Portfolio" width="120" style="border-radius: 50%;" />
 
   # 🚀 Rahul's Personal Portfolio
 
   A modern, interactive personal portfolio website built with **React**, **Vite**, and **Tailwind CSS** — featuring a Guestbook powered by **Firebase**.
 
-  [![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-Visit%20Portfolio-6366f1?style=for-the-badge)](https://rahullm9.github.io/my_portfolio)
+  [![Live Demo](https://my-portfolio-navy-eight-79.vercel.app/)](https://rahullm9.github.io/my_portfolio)
   [![GitHub](https://img.shields.io/badge/GitHub-rahullm9-181717?style=for-the-badge&logo=github)](https://github.com/rahullm9/my_portfolio)
 
 </div>
