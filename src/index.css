@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-primary: rgb(170, 0, 238);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  /* Light mode neon variables */
+  --neon-pink-shadow: 0 0 8px rgba(255, 20, 147, 0.2), inset 0 0 8px rgba(255, 20, 147, 0.05);
+  --neon-pink-border: rgba(255, 20, 147, 0.3);
+
+  --neon-green-shadow: 0 0 8px rgba(0, 255, 102, 0.2), inset 0 0 8px rgba(0, 255, 102, 0.05);
+  --neon-green-border: rgba(0, 255, 102, 0.3);
+
+  --neon-purple-shadow: 0 0 8px rgba(178, 0, 255, 0.2), inset 0 0 8px rgba(178, 0, 255, 0.05);
+  --neon-purple-border: rgba(178, 0, 255, 0.3);
+}
+
+.dark {
+  /* Dark mode neon variables */
+  --neon-pink-shadow: 0 0 12px rgba(255, 20, 147, 0.6), inset 0 0 10px rgba(255, 20, 147, 0.2);
+  --neon-pink-border: rgba(170, 0, 238, 0.8);
+
+  --neon-green-shadow: 0 0 12px rgba(0, 255, 102, 0.6), inset 0 0 10px rgba(0, 255, 102, 0.2);
+  --neon-green-border: rgba(0, 255, 102, 0.8);
+
+  --neon-purple-shadow: 0 0 12px rgba(178, 0, 255, 0.6), inset 0 0 10px rgba(178, 0, 255, 0.2);
+  --neon-purple-border: rgba(178, 0, 255, 0.8);
+}
+
+body {
+  @apply font-sans antialiased text-gray-900 selection:bg-primary/20 transition-colors duration-300;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.dark body {
+  @apply text-gray-200 selection:bg-primary/30 selection:text-white;
+}
+
+/* Animated gradient background */
+.gradient-bg {
+  background: linear-gradient(-45deg, #f8fafc, #fdf4ff, #ede9fe, #f0fdf4);
+  background-size: 400% 400%;
+  animation: gradientShift 14s ease infinite;
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(-45deg, #050505, #120818, #060e18, #070518);
+  background-size: 400% 400%;
+  animation: gradientShift 14s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@utility neon-pink {
+  box-shadow: var(--neon-pink-shadow);
+  border-color: var(--neon-pink-border);
+}
+
+@utility neon-green {
+  box-shadow: var(--neon-green-shadow);
+  border-color: var(--neon-green-border);
+}
+
+@utility neon-purple {
+  box-shadow: var(--neon-purple-shadow);
+  border-color: var(--neon-purple-border);
+}
