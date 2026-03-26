@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
+    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm start\"",
     "build": "cd frontend && npm run build",
     "deploy": "cd frontend && npm run deploy"
   },
