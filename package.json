@@ -7,7 +7,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "build": "vite build",
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"cd backend && npm run dev\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -23,6 +23,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "clsx": "^2.1.1",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -33,5 +34,5 @@
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.1"
   },
-  "homepage": "https://github.com/rahullm9/my_portfolio"
+  "homepage": "https://rahullm9.github.io/my_portfolio"
 }
