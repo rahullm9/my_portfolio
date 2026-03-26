@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="./frontend/src/assets/project1.png" alt="Rahul's Portfolio" width="320" style="border-radius: 50%;" />
+  <img src="./frontend/src/assets/project1.png" alt="Rahul's Portfolio" width="100%" style="border-radius: 50%;" />
 
   # 🚀 Rahul's Personal Portfolio
 
