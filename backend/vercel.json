@@ -1,4 +1,6 @@
 {
+  "installCommand": "npm install",
+  "buildCommand": "",
   "rewrites": [
     { "source": "/(.*)", "destination": "server.js" }
   ]
