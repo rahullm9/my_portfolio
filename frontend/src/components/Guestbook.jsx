@@ -27,7 +27,7 @@ const Guestbook = ({ isHome, setActiveSection }) => {
       });
 
       // Fetch from new Node backend
-      fetch('http://localhost:5000/api/guestbook')
+      fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`)
         .then(res => {
           if (!res.ok) throw new Error('API Error');
           return res.json();
@@ -94,7 +94,7 @@ const Guestbook = ({ isHome, setActiveSection }) => {
 
     if (isFirebaseConfigured) {
       try {
-        const response = await fetch('http://localhost:5000/api/guestbook', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
