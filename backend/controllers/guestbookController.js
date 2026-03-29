@@ -5,7 +5,7 @@ const Guestbook = require('../models/Guestbook');
 // @access  Public
 const getComments = async (req, res) => {
   try {
-    const comments = await Guestbook.find().sort({ createdAt: 1 });
+    const comments = await Guestbook.find().sort({ createdAt: -1 });
     res.json(comments);
   } catch (error) {
     console.error('Error fetching comments:', error);

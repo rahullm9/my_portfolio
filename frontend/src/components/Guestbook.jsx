@@ -40,7 +40,10 @@ const Guestbook = ({ isHome, setActiveSection }) => {
           setComments(fetchedComments);
         })
         .catch(error => {
-          console.warn("Backend error, falling back to local storage.", error);
+          console.error("Backend error or unreachable:", error);
+          if (import.meta.env.MODE === 'production' && import.meta.env.VITE_API_URL.includes('your-backend-url')) {
+            console.error("CRITICAL: VITE_API_URL is still set to placeholder in production!");
+          }
           loadLocalComments();
         });
 
@@ -117,7 +120,7 @@ const Guestbook = ({ isHome, setActiveSection }) => {
         setNewComment('');
       } catch (error) {
         console.error("Error posting to backend: ", error);
-        alert("Could not post comment. Is the backend running?");
+        alert(`Could not post comment: ${error.message}. Is the backend running at ${import.meta.env.VITE_API_URL}?`);
       }
     } else {
       // LocalStorage fallback
