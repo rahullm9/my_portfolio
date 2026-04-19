@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // --- DATABASE CONNECTION ---
 const connectDB = async () => {
@@ -26,7 +26,7 @@ const guestbookSchema = new mongoose.Schema({
 const Guestbook = mongoose.models.Guestbook || mongoose.model('Guestbook', guestbookSchema);
 
 // --- HANDLER ---
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Add CORS headers manually for standalone function
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -61,4 +61,4 @@ module.exports = async (req, res) => {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
-};
+}
