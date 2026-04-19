@@ -1,6 +1,7 @@
 import React from 'react';
 import { FiStar } from 'react-icons/fi';
 import project1Img from '../assets/project1.png';
+import clashkingImg from '../assets/clashking.png';
 
 
 const projectsList = [
@@ -12,6 +13,15 @@ const projectsList = [
     image: project1Img,
     source: "https://github.com/rahullm9",
     stack: ["React", "NodeJS", "Tailwind", "CSS"]
+  },
+  {
+    id: 2,
+    title: "ClashKing Dashboard (open source)",
+    year: "2026",
+    description: "Contribution: Fixed role label truncation and improved mobile UX",
+    image: clashkingImg,
+    source: "https://github.com/rahullm9/ClashKingDashboard",
+    stack: ["TypeScript", "Next.js", "Tailwind", "CSS"]
   },
 
 ];
