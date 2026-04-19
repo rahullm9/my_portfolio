@@ -147,6 +147,39 @@ const Guestbook = ({ isHome, setActiveSection }) => {
     }
   };
 
+  const handleReaction = async (commentId, type) => {
+    const reactionKey = `reacted_${commentId}_${type}`;
+    if (localStorage.getItem(reactionKey)) return; // Prevent spam
+
+    // Optimistically update UI
+    setComments(prev => prev.map(c => {
+      if ((c._id || c.id) === commentId) {
+        return {
+          ...c,
+          reactions: {
+            ...c.reactions,
+            [type]: (c.reactions?.[type] || 0) + 1
+          }
+        };
+      }
+      return c;
+    }));
+
+    localStorage.setItem(reactionKey, 'true');
+
+    // Send update to backend
+    try {
+      const response = await fetch(`${API_URL}/api/guestbook`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: commentId, reactionType: type })
+      });
+      if (!response.ok) throw new Error('Reaction failed');
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const displayComments = isHome ? comments.slice(0, 3) : comments;
 
   return (
@@ -172,6 +205,32 @@ const Guestbook = ({ isHome, setActiveSection }) => {
                 </div>
                 <div className="p-4 text-gray-800 dark:text-gray-300 text-[15px] leading-relaxed transition-colors duration-300 whitespace-pre-wrap">
                   {comment.text}
+                </div>
+                {/* Reactions Bar */}
+                <div className="px-4 py-2 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#111]/50 flex gap-2">
+                  {[
+                    { type: 'like', emoji: '👍' },
+                    { type: 'heart', emoji: '❤️' },
+                    { type: 'rocket', emoji: '🚀' }
+                  ].map(({ type, emoji }) => {
+                    const count = comment.reactions?.[type] || 0;
+                    const hasReacted = localStorage.getItem(`reacted_${comment._id || comment.id}_${type}`);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => handleReaction(comment._id || comment.id, type)}
+                        disabled={!!hasReacted}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-medium transition-all ${
+                          hasReacted 
+                            ? 'bg-primary/10 text-primary border border-primary/20' 
+                            : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#222]'
+                        }`}
+                      >
+                        <span className="text-sm">{emoji}</span>
+                        {count > 0 && <span>{count}</span>}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
