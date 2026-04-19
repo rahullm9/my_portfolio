@@ -1,0 +1,9 @@
+{
+  "name": "my-portfolio-firestore",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build"
+  }
+}

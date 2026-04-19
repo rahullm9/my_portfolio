@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  onSnapshot,
+  serverTimestamp 
+} from 'firebase/firestore';
 
 const Guestbook = ({ isHome, setActiveSection }) => {
   const [comments, setComments] = useState([]);
@@ -9,29 +18,31 @@ const Guestbook = ({ isHome, setActiveSection }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Fetch comments from backend
-    fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`)
-      .then(res => {
-        if (!res.ok) throw new Error('API Error');
-        return res.json();
-      })
-      .then(data => {
-        const fetchedComments = data.map(comment => ({
-          ...comment,
-          date: comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
-        }));
-        setComments(fetchedComments);
-      })
-      .catch(error => {
-        console.error("Backend error or unreachable:", error);
-        loadLocalComments();
+    // 1. Fetch real-time comments from Firestore
+    const q = query(collection(db, 'guestbook'), orderBy('createdAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedComments = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          date: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
+        };
       });
+      setComments(fetchedComments);
+    }, (error) => {
+      console.error("Firestore Fetch Error:", error);
+      loadLocalComments();
+    });
 
-    // Load saved guest info from localStorage
+    // 2. Load saved guest info from localStorage
     const savedName = localStorage.getItem('guestbook_name');
     const savedEmail = localStorage.getItem('guestbook_email');
     if (savedName) setGuestName(savedName);
     if (savedEmail) setGuestEmail(savedEmail);
+
+    return () => unsubscribe();
   }, []);
 
   const loadLocalComments = () => {
@@ -50,31 +61,19 @@ const Guestbook = ({ isHome, setActiveSection }) => {
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(guestName)}&background=random`;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          author: guestName,
-          email: guestEmail, // Sending email just in case backend uses it later
-          avatar: avatar,
-          text: newComment
-        })
+      // Add document to Firestore
+      await addDoc(collection(db, 'guestbook'), {
+        author: guestName,
+        email: guestEmail,
+        avatar: avatar,
+        text: newComment,
+        createdAt: serverTimestamp()
       });
 
-      if (!response.ok) throw new Error('Failed to post');
-
-      const newDoc = await response.json();
-      const newCommentObj = {
-        ...newDoc,
-        id: newDoc._id,
-        date: newDoc.createdAt ? new Date(newDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
-      };
-
-      setComments([newCommentObj, ...comments]);
       setNewComment('');
     } catch (error) {
-      console.error("Error posting to backend: ", error);
-      alert(`Could not post comment: ${error.message}. Is the backend running at ${import.meta.env.VITE_API_URL}?`);
+      console.error("Error posting to Firestore: ", error);
+      alert(`Could not post comment: ${error.message}. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
