@@ -1,61 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { FiGithub } from 'react-icons/fi';
-import { auth, githubProvider } from '../firebase';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 
 const Guestbook = ({ isHome, setActiveSection }) => {
   const [comments, setComments] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [newComment, setNewComment] = useState('');
   const [activeTab, setActiveTab] = useState('write');
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check if Firebase is hooked up
-    if (import.meta.env.VITE_FIREBASE_API_KEY) {
-      setIsFirebaseConfigured(true);
-
-      const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setCurrentUser({
-            author: user.reloadUserInfo?.screenName || user.displayName || user.email?.split('@')[0] || "Guest",
-            avatar: user.photoURL || `https://ui-avatars.com/api/?name=${user.email || 'G'}`
-          });
-        } else {
-          setCurrentUser(null);
-        }
+    // Fetch comments from backend
+    fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`)
+      .then(res => {
+        if (!res.ok) throw new Error('API Error');
+        return res.json();
+      })
+      .then(data => {
+        const fetchedComments = data.map(comment => ({
+          ...comment,
+          date: comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
+        }));
+        setComments(fetchedComments);
+      })
+      .catch(error => {
+        console.error("Backend error or unreachable:", error);
+        loadLocalComments();
       });
 
-      // Fetch from new Node backend
-      fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`)
-        .then(res => {
-          if (!res.ok) throw new Error('API Error');
-          return res.json();
-        })
-        .then(data => {
-          const fetchedComments = data.map(comment => ({
-            ...comment,
-            date: comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
-          }));
-          setComments(fetchedComments);
-        })
-        .catch(error => {
-          console.error("Backend error or unreachable:", error);
-          if (import.meta.env.MODE === 'production' && import.meta.env.VITE_API_URL.includes('your-backend-url')) {
-            console.error("CRITICAL: VITE_API_URL is still set to placeholder in production!");
-          }
-          loadLocalComments();
-        });
-
-      return () => {
-        unsubscribeAuth();
-      };
-    } else {
-      // Firebase not configured yet, fallback to localStorage mock
-      loadLocalComments();
-      const user = localStorage.getItem('guestbook_user');
-      if (user) setCurrentUser(JSON.parse(user));
-    }
+    // Load saved guest info from localStorage
+    const savedName = localStorage.getItem('guestbook_name');
+    const savedEmail = localStorage.getItem('guestbook_email');
+    if (savedName) setGuestName(savedName);
+    if (savedEmail) setGuestEmail(savedEmail);
   }, []);
 
   const loadLocalComments = () => {
@@ -63,78 +39,44 @@ const Guestbook = ({ isHome, setActiveSection }) => {
     setComments(saved ? JSON.parse(saved) : []);
   };
 
-  const handleLogin = async () => {
-    if (isFirebaseConfigured) {
-      try {
-        await signInWithPopup(auth, githubProvider);
-      } catch (error) {
-        console.error("GitHub Login Error:", error);
-        alert("GitHub Login failed! Check console or Firebase config.");
-      }
-    } else {
-      // Mock Login if .env isn't set up yet
-      alert("Note: Firebase is not configured (.env.local missing). Proceeding with a mock GitHub profile just for testing the UI locally.");
-      const fakeUser = {
-        author: "guest_user",
-        avatar: "https://avatars.githubusercontent.com/u/9919?v=4"
-      };
-      setCurrentUser(fakeUser);
-      localStorage.setItem('guestbook_user', JSON.stringify(fakeUser));
-    }
-  };
-
-  const handleLogout = () => {
-    if (isFirebaseConfigured) {
-      signOut(auth);
-    } else {
-      setCurrentUser(null);
-      localStorage.removeItem('guestbook_user');
-    }
-  };
-
   const handleSubmit = async () => {
-    if (!newComment.trim() || !currentUser) return;
+    if (!newComment.trim() || !guestName.trim()) return;
+    
+    setIsSubmitting(true);
+    // Save info to localStorage for next time
+    localStorage.setItem('guestbook_name', guestName);
+    localStorage.setItem('guestbook_email', guestEmail);
 
-    if (isFirebaseConfigured) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            author: currentUser.author,
-            avatar: currentUser.avatar,
-            text: newComment
-          })
-        });
+    const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(guestName)}&background=random`;
 
-        if (!response.ok) throw new Error('Failed to post');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/guestbook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: guestName,
+          email: guestEmail, // Sending email just in case backend uses it later
+          avatar: avatar,
+          text: newComment
+        })
+      });
 
-        const newDoc = await response.json();
-        const newCommentObj = {
-          ...newDoc,
-          id: newDoc._id,
-          date: newDoc.createdAt ? new Date(newDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
-        };
+      if (!response.ok) throw new Error('Failed to post');
 
-        setComments([...comments, newCommentObj]);
-        setNewComment('');
-      } catch (error) {
-        console.error("Error posting to backend: ", error);
-        alert(`Could not post comment: ${error.message}. Is the backend running at ${import.meta.env.VITE_API_URL}?`);
-      }
-    } else {
-      // LocalStorage fallback
-      const comment = {
-        id: Date.now(),
-        author: currentUser.author,
-        avatar: currentUser.avatar,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        text: newComment
+      const newDoc = await response.json();
+      const newCommentObj = {
+        ...newDoc,
+        id: newDoc._id,
+        date: newDoc.createdAt ? new Date(newDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
       };
-      const updated = [...comments, comment];
-      setComments(updated);
-      localStorage.setItem('guestbook_comments', JSON.stringify(updated));
+
+      setComments([newCommentObj, ...comments]);
       setNewComment('');
+    } catch (error) {
+      console.error("Error posting to backend: ", error);
+      alert(`Could not post comment: ${error.message}. Is the backend running at ${import.meta.env.VITE_API_URL}?`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -183,15 +125,40 @@ const Guestbook = ({ isHome, setActiveSection }) => {
 
       {/* Input Form */}
       <div className="flex gap-4 pl-2">
-        {currentUser ? (
-          <img src={currentUser.avatar} alt="You" className="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10 flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#222] flex items-center justify-center flex-shrink-0">
-            <FiGithub className="text-gray-500 dark:text-gray-400" />
-          </div>
-        )}
+        <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10 flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-[#111]">
+          <img 
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(guestName || 'G')}&background=random`} 
+            alt="You" 
+            className="w-full h-full object-cover" 
+          />
+        </div>
 
         <div className="flex-1 border border-gray-300 dark:border-white/20 rounded-md overflow-hidden bg-white dark:bg-[#0a0a0a] transition-colors duration-300 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+          <div className="p-4 space-y-4 border-b border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-[#111]/50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 ml-1">Name</label>
+                <input
+                  type="text"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Your name"
+                  className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#050505] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 ml-1">Email <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#050505] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2 px-3 pt-2 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#111] transition-colors duration-300">
             <button
               onClick={() => setActiveTab('write')}
@@ -225,27 +192,13 @@ const Guestbook = ({ isHome, setActiveSection }) => {
           <div className="flex justify-between items-center px-4 py-2 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#111] transition-colors duration-300">
             <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hidden sm:inline-block">Styling with Markdown is supported</span>
             <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 sm:hidden">Markdown supported</span>
-            {currentUser ? (
-              <div className="flex gap-4 items-center">
-                <button onClick={handleLogout} className="text-[13px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-                  Sign out
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!newComment.trim()}
-                  className="px-4 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Comment
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleLogin}
-                className="flex items-center gap-2 px-4 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-[14px] font-semibold rounded-md transition-colors shadow-sm"
-              >
-                <FiGithub size={16} /> Sign in with GitHub
-              </button>
-            )}
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !newComment.trim() || !guestName.trim()}
+              className="px-6 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {isSubmitting ? 'Posting...' : 'Post Comment'}
+            </button>
           </div>
         </div>
       </div>
