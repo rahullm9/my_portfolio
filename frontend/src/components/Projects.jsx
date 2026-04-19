@@ -2,6 +2,7 @@ import React from 'react';
 import { FiStar } from 'react-icons/fi';
 import project1Img from '../assets/project1.png';
 import clashkingImg from '../assets/clashking.png';
+import findurservice from '../assets/findurservice.png';
 
 
 const projectsList = [
@@ -22,6 +23,15 @@ const projectsList = [
     image: clashkingImg,
     source: "https://github.com/rahullm9/ClashKingDashboard",
     stack: ["TypeScript", "Next.js", "Tailwind", "CSS"]
+  },
+  {
+    id: 3,
+    title: "Find Your Service",
+    year: "2026",
+    description: "This is a full-stack web application designed to help users discover and offer local services. Built with React (Vite) on the frontend and Express.js with MongoDB on the backend.",
+    image: findurservice,
+    source: "https://github.com/rahullm9/findYourService",
+    stack: ["React", "NodeJS", "Tailwind", "CSS"]
   },
 
 ];
