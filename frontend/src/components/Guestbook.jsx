@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  onSnapshot,
-  serverTimestamp 
-} from 'firebase/firestore';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const Guestbook = ({ isHome, setActiveSection }) => {
   const [comments, setComments] = useState([]);
@@ -16,70 +9,75 @@ const Guestbook = ({ isHome, setActiveSection }) => {
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Fetch real-time comments from Firestore
-    const q = query(collection(db, 'guestbook'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const fetchedComments = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          date: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US')
-        };
-      });
-      setComments(fetchedComments);
-    }, (error) => {
-      console.error("Firestore Fetch Error:", error);
-      loadLocalComments();
-    });
-
-    // 2. Load saved guest info from localStorage
+    // Load saved guest info from localStorage
     const savedName = localStorage.getItem('guestbook_name');
     const savedEmail = localStorage.getItem('guestbook_email');
     if (savedName) setGuestName(savedName);
     if (savedEmail) setGuestEmail(savedEmail);
 
-    return () => unsubscribe();
+    // Fetch comments from MongoDB via API
+    fetch(`${API_URL}/api/guestbook`)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        const fetchedComments = data.map(comment => ({
+          ...comment,
+          id: comment._id,
+          date: comment.createdAt
+            ? new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : new Date().toLocaleDateString('en-US'),
+        }));
+        setComments(fetchedComments);
+      })
+      .catch(err => {
+        console.error('Failed to load comments:', err);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
-
-  const loadLocalComments = () => {
-    const saved = localStorage.getItem('guestbook_comments');
-    setComments(saved ? JSON.parse(saved) : []);
-  };
 
   const handleSubmit = async () => {
     if (!newComment.trim() || !guestName.trim()) return;
-    
+
     setIsSubmitting(true);
-    // Save info to localStorage for next time
     localStorage.setItem('guestbook_name', guestName);
     localStorage.setItem('guestbook_email', guestEmail);
 
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(guestName)}&background=random`;
 
     try {
-      // Add document to Firestore
-      await addDoc(collection(db, 'guestbook'), {
-        author: guestName,
-        email: guestEmail,
-        avatar: avatar,
-        text: newComment,
-        createdAt: serverTimestamp()
+      const response = await fetch(`${API_URL}/api/guestbook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: guestName, email: guestEmail, avatar, text: newComment }),
       });
 
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const newDoc = await response.json();
+      const newCommentObj = {
+        ...newDoc,
+        id: newDoc._id,
+        date: newDoc.createdAt
+          ? new Date(newDoc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : new Date().toLocaleDateString('en-US'),
+      };
+
+      setComments(prev => [newCommentObj, ...prev]);
       setNewComment('');
     } catch (error) {
-      console.error("Error posting to Firestore: ", error);
-      alert(`Could not post comment: ${error.message}. Please try again.`);
+      console.error('Error posting comment:', error);
+      alert(`Could not post comment: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const displayComments = isHome ? comments.slice(-3) : comments;
+  const displayComments = isHome ? comments.slice(0, 3) : comments;
 
   return (
     <div id="guestbook" className="w-full mt-10 md:mt-32 mb-10 max-w-[1000px] mx-auto">
@@ -89,20 +87,26 @@ const Guestbook = ({ isHome, setActiveSection }) => {
 
       {/* Comments List */}
       <div className="space-y-6 mb-8 pl-2">
-        {displayComments.map((comment, index) => (
-          <div key={comment._id || comment.id || index} className="flex gap-4">
-            <img src={comment.avatar} alt={comment.author} className="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10 flex-shrink-0" />
-            <div className="flex-1 rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] overflow-hidden transition-colors duration-300 shadow-sm dark:shadow-none">
-              <div className="px-4 py-2 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#111] transition-colors duration-300">
-                <span className="font-semibold text-gray-900 dark:text-gray-200 text-[15px]">{comment.author}</span>
-                <span className="text-gray-500 dark:text-gray-400 text-[13px] ml-2 font-medium">commented on {comment.date}</span>
-              </div>
-              <div className="p-4 text-gray-800 dark:text-gray-300 text-[15px] leading-relaxed transition-colors duration-300 whitespace-pre-wrap">
-                {comment.text}
+        {isLoading ? (
+          <div className="text-gray-400 dark:text-gray-500 text-sm py-4">Loading comments…</div>
+        ) : displayComments.length === 0 ? (
+          <div className="text-gray-400 dark:text-gray-500 text-sm py-4">No comments yet. Be the first!</div>
+        ) : (
+          displayComments.map((comment, index) => (
+            <div key={comment._id || comment.id || index} className="flex gap-4">
+              <img src={comment.avatar} alt={comment.author} className="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10 flex-shrink-0" />
+              <div className="flex-1 rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] overflow-hidden transition-colors duration-300 shadow-sm dark:shadow-none">
+                <div className="px-4 py-2 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#111] transition-colors duration-300">
+                  <span className="font-semibold text-gray-900 dark:text-gray-200 text-[15px]">{comment.author}</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-[13px] ml-2 font-medium">commented on {comment.date}</span>
+                </div>
+                <div className="p-4 text-gray-800 dark:text-gray-300 text-[15px] leading-relaxed transition-colors duration-300 whitespace-pre-wrap">
+                  {comment.text}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
 
         {isHome && (
           <div className="flex justify-end pt-2 pb-6">
@@ -125,14 +129,15 @@ const Guestbook = ({ isHome, setActiveSection }) => {
       {/* Input Form */}
       <div className="flex gap-4 pl-2">
         <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10 flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-[#111]">
-          <img 
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(guestName || 'G')}&background=random`} 
-            alt="You" 
-            className="w-full h-full object-cover" 
+          <img
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(guestName || 'G')}&background=random`}
+            alt="You"
+            className="w-full h-full object-cover"
           />
         </div>
 
         <div className="flex-1 border border-gray-300 dark:border-white/20 rounded-md overflow-hidden bg-white dark:bg-[#0a0a0a] transition-colors duration-300 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+          {/* Name + Email */}
           <div className="p-4 space-y-4 border-b border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-[#111]/50">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
@@ -140,17 +145,19 @@ const Guestbook = ({ isHome, setActiveSection }) => {
                 <input
                   type="text"
                   value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
+                  onChange={e => setGuestName(e.target.value)}
                   placeholder="Your name"
                   className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#050505] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all shadow-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 ml-1">Email <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 ml-1">
+                  Email <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
                 <input
                   type="email"
                   value={guestEmail}
-                  onChange={(e) => setGuestEmail(e.target.value)}
+                  onChange={e => setGuestEmail(e.target.value)}
                   placeholder="your@email.com"
                   className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#050505] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all shadow-sm"
                 />
@@ -158,6 +165,7 @@ const Guestbook = ({ isHome, setActiveSection }) => {
             </div>
           </div>
 
+          {/* Write / Preview tabs */}
           <div className="flex items-center gap-2 px-3 pt-2 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#111] transition-colors duration-300">
             <button
               onClick={() => setActiveTab('write')}
@@ -173,30 +181,31 @@ const Guestbook = ({ isHome, setActiveSection }) => {
             </button>
           </div>
 
+          {/* Textarea / Preview */}
           <div className="p-2 bg-white dark:bg-[#0a0a0a]">
             {activeTab === 'write' ? (
               <textarea
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={e => setNewComment(e.target.value)}
                 placeholder="Leave a comment"
                 className="w-full min-h-[120px] p-2 bg-transparent text-gray-900 dark:text-gray-200 resize-y outline-none placeholder-gray-500 dark:placeholder-gray-500 transition-colors duration-300 font-sans text-[15px] whitespace-pre-wrap"
               />
             ) : (
               <div className="min-h-[120px] p-2 text-gray-900 dark:text-gray-200 transition-colors duration-300 text-[15px] whitespace-pre-wrap">
-                {newComment ? newComment : 'Nothing to preview'}
+                {newComment || 'Nothing to preview'}
               </div>
             )}
           </div>
 
+          {/* Footer */}
           <div className="flex justify-between items-center px-4 py-2 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#111] transition-colors duration-300">
-            <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hidden sm:inline-block">Styling with Markdown is supported</span>
-            <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 sm:hidden">Markdown supported</span>
+            <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hidden sm:inline-block">Markdown supported</span>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || !newComment.trim() || !guestName.trim()}
               className="px-6 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              {isSubmitting ? 'Posting...' : 'Post Comment'}
+              {isSubmitting ? 'Posting…' : 'Post Comment'}
             </button>
           </div>
         </div>

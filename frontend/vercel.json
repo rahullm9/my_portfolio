@@ -1,8 +1,8 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/guestbook", "destination": "/api/guestbook.cjs" },
-    { "source": "/api/health", "destination": "/api/health.cjs" },
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/api/guestbook", "destination": "/api/guestbook.mjs" },
+    { "source": "/api/health", "destination": "/api/health.mjs" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
