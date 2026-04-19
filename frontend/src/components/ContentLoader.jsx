@@ -2,16 +2,28 @@ import React from 'react';
 
 const ContentLoader = () => {
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-[60vh] space-y-6">
-      <div className="relative flex items-center justify-center">
-        {/* Outer glowing ring */}
-        <div className="absolute w-16 h-16 border-4 border-primary/20 rounded-full animate-pulse"></div>
-        {/* Inner spinning ring */}
-        <div className="w-12 h-12 border-4 border-transparent border-t-primary border-b-primary rounded-full animate-spin shadow-[0_0_15px_rgba(168,85,247,0.5)]"></div>
+    <div className="w-full max-w-[1000px] mt-10 md:mt-32 mb-10 mx-auto px-2">
+      <div className="animate-pulse flex flex-col space-y-8">
+        
+        {/* Skeleton Top Row */}
+        <div className="flex items-center space-x-4">
+          {/* Avatar Skeleton */}
+          <div className="w-14 h-14 bg-gray-200 dark:bg-zinc-800 rounded-full"></div>
+          
+          {/* Title/Subtitle Skeleton */}
+          <div className="space-y-3">
+            <div className="h-3.5 bg-gray-200 dark:bg-zinc-800 rounded w-48"></div>
+            <div className="h-3 bg-gray-200 dark:bg-zinc-800 rounded w-32"></div>
+          </div>
+        </div>
+
+        {/* Skeleton Body Lines */}
+        <div className="space-y-4">
+          <div className="h-3 bg-gray-200 dark:bg-zinc-800 rounded w-full"></div>
+          <div className="h-3 bg-gray-200 dark:bg-zinc-800 rounded w-[90%]"></div>
+          <div className="h-3 bg-gray-200 dark:bg-zinc-800 rounded w-[60%]"></div>
+        </div>
       </div>
-      <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide animate-pulse">
-        Loading...
-      </p>
     </div>
   );
 };
