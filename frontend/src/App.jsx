@@ -9,19 +9,61 @@ import Blog from './components/Blog';
 import Guestbook from './components/Guestbook';
 
 function App() {
-  const [activeSection, setActiveSection] = useState('Home');
+  const [activeSection, setActiveSection] = useState(() => {
+    // Priority 1: URL Hash
+    const hash = window.location.hash.slice(1);
+    const sections = ['Home', 'Blog', 'Projects', 'About', 'Guestbook'];
+    const hashSection = sections.find(s => s.toLowerCase() === hash.toLowerCase());
+    if (hashSection) return hashSection;
+
+    // Priority 2: LocalStorage
+    const savedSection = localStorage.getItem('last_section');
+    if (savedSection && sections.includes(savedSection)) return savedSection;
+
+    // Default
+    return 'Home';
+  });
+
+  React.useEffect(() => {
+    // Handle back/forward navigation or manual hash changes
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      const sections = ['Home', 'Blog', 'Projects', 'About', 'Guestbook'];
+      const section = sections.find(s => s.toLowerCase() === hash.toLowerCase());
+      if (section) {
+        setActiveSection(section);
+        localStorage.setItem('last_section', section);
+      } else if (!hash) {
+        setActiveSection('Home');
+        localStorage.setItem('last_section', 'Home');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleSetSection = (section) => {
+    setActiveSection(section);
+    localStorage.setItem('last_section', section);
+    if (section === 'Home') {
+      window.history.pushState(null, '', window.location.pathname);
+    } else {
+      window.location.hash = section.toLowerCase();
+    }
+  };
 
   return (
     <MainLayout>
-      <Navbar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <Navbar activeSection={activeSection} setActiveSection={handleSetSection} />
       
       {activeSection === 'Home' && (
         <>
           <main className="flex flex-col md:flex-row justify-between items-start w-full gap-8 md:gap-4 relative">
             <Hero />
-            <LinkCards setActiveSection={setActiveSection} />
+            <LinkCards setActiveSection={handleSetSection} />
           </main>
-          <Guestbook isHome={true} setActiveSection={setActiveSection} />
+          <Guestbook isHome={true} setActiveSection={handleSetSection} />
         </>
       )}
 
