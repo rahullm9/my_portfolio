@@ -1,8 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db');
-const guestbookRoutes = require('./routes/guestbookRoutes');
+const connectDB = require('./config/db.cjs');
+const guestbookRoutes = require('./routes/guestbookRoutes.cjs');
 
 // Connect to database
 connectDB();

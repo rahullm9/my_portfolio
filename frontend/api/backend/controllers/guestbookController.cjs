@@ -1,4 +1,4 @@
-const Guestbook = require('../models/Guestbook');
+const Guestbook = require('../models/Guestbook.cjs');
 
 // @desc    Get all guestbook comments
 // @route   GET /api/guestbook
