@@ -11,6 +11,8 @@ const Guestbook = ({ isHome, setActiveSection }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [emailError, setEmailError] = useState('');
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
     // Load saved guest info from localStorage
@@ -41,27 +43,70 @@ const Guestbook = ({ isHome, setActiveSection }) => {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const isValidEmail = (email) => {
-    if (!email) return true; // optional field
-    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-  };
+  const isValidFormat = (email) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+
+  // Debounce ref to avoid firing on every keystroke
+  const emailDebounceRef = React.useRef(null);
 
   const handleEmailChange = (e) => {
     const val = e.target.value;
     setGuestEmail(val);
-    if (val && !isValidEmail(val)) {
-      setEmailError('Please enter a valid email address');
-    } else {
+    setEmailVerified(false);
+
+    if (!val) {
       setEmailError('');
+      setEmailChecking(false);
+      clearTimeout(emailDebounceRef.current);
+      return;
     }
+
+    if (!isValidFormat(val)) {
+      setEmailError('Please enter a valid email address');
+      setEmailChecking(false);
+      clearTimeout(emailDebounceRef.current);
+      return;
+    }
+
+    // Format looks good — check existence after 800ms pause
+    setEmailError('');
+    setEmailChecking(true);
+    clearTimeout(emailDebounceRef.current);
+    emailDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.eva.pingutil.com/email?email=${encodeURIComponent(val)}`
+        );
+        const data = await res.json();
+        const d = data?.data;
+        if (d?.valid_syntax && d?.domain_exists && d?.valid_mx_records) {
+          setEmailError('');
+          setEmailVerified(true);
+        } else {
+          setEmailVerified(false);
+          setEmailError(
+            d?.disposable
+              ? 'Disposable email addresses are not allowed'
+              : 'This email address does not exist or cannot receive mail'
+          );
+        }
+      } catch {
+        // If the checker fails (network issue), fall back to format-only
+        setEmailVerified(true);
+        setEmailError('');
+      } finally {
+        setEmailChecking(false);
+      }
+    }, 800);
   };
 
   const handleSubmit = async () => {
     if (!newComment.trim() || !guestName.trim()) return;
-    if (guestEmail && !isValidEmail(guestEmail)) {
-      setEmailError('Please enter a valid email address');
+    if (guestEmail && (!isValidFormat(guestEmail) || emailError)) {
+      setEmailError(emailError || 'Please enter a valid email address');
       return;
     }
+    if (emailChecking) return; // still verifying
 
     setIsSubmitting(true);
     localStorage.setItem('guestbook_name', guestName);
@@ -174,24 +219,48 @@ const Guestbook = ({ isHome, setActiveSection }) => {
                 <label className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 ml-1">
                   Email <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
-                <input
-                  type="email"
-                  value={guestEmail}
-                  onChange={handleEmailChange}
-                  placeholder="your@email.com"
-                  className={`px-3 py-2 text-sm rounded-md border bg-white dark:bg-[#050505] text-gray-900 dark:text-white focus:outline-none focus:ring-1 transition-all shadow-sm ${
-                    emailError
-                      ? 'border-red-400 dark:border-red-500 focus:ring-red-400'
-                      : 'border-gray-300 dark:border-white/10 focus:ring-primary'
-                  }`}
-                />
-                {emailError && (
-                  <span className="text-[12px] text-red-500 ml-1 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {emailError}
-                  </span>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={handleEmailChange}
+                    placeholder="your@email.com"
+                    className={`w-full px-3 py-2 pr-9 text-sm rounded-md border bg-white dark:bg-[#050505] text-gray-900 dark:text-white focus:outline-none focus:ring-1 transition-all shadow-sm ${
+                      emailError
+                        ? 'border-red-400 dark:border-red-500 focus:ring-red-400'
+                        : emailVerified
+                        ? 'border-green-400 dark:border-green-500 focus:ring-green-400'
+                        : 'border-gray-300 dark:border-white/10 focus:ring-primary'
+                    }`}
+                  />
+                  {/* Status icon inside input */}
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    {emailChecking && (
+                      <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    )}
+                    {!emailChecking && emailVerified && (
+                      <svg className="h-4 w-4 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414L8.414 15l-4.121-4.121a1 1 0 111.414-1.414L8.414 12.172l7.879-7.879a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    {!emailChecking && emailError && (
+                      <svg className="h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                {emailChecking && (
+                  <span className="text-[12px] text-gray-400 ml-1">Verifying email…</span>
+                )}
+                {!emailChecking && emailVerified && (
+                  <span className="text-[12px] text-green-500 ml-1">✓ Email verified</span>
+                )}
+                {!emailChecking && emailError && (
+                  <span className="text-[12px] text-red-500 ml-1">{emailError}</span>
                 )}
               </div>
             </div>
@@ -234,10 +303,10 @@ const Guestbook = ({ isHome, setActiveSection }) => {
             <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hidden sm:inline-block">Markdown supported</span>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !newComment.trim() || !guestName.trim() || !!emailError}
+              disabled={isSubmitting || emailChecking || !newComment.trim() || !guestName.trim() || !!emailError}
               className="px-6 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              {isSubmitting ? 'Posting…' : 'Post Comment'}
+              {isSubmitting ? 'Posting…' : emailChecking ? 'Verifying…' : 'Post Comment'}
             </button>
           </div>
         </div>
