@@ -8,6 +8,7 @@ import About from './components/About';
 import Blog from './components/Blog';
 import Guestbook from './components/Guestbook';
 import PageLoader from './components/PageLoader';
+import ContentLoader from './components/ContentLoader';
 
 function App() {
   const [activeSection, setActiveSection] = useState(() => {
@@ -61,30 +62,36 @@ function App() {
       <MainLayout>
       <Navbar activeSection={activeSection} setActiveSection={handleSetSection} />
       
-      {activeSection === 'Home' && (
+      {isPageChanging ? (
+        <ContentLoader />
+      ) : (
         <>
-          <main className="flex flex-col md:flex-row justify-between items-start w-full gap-8 md:gap-4 relative">
-            <Hero />
-            <LinkCards setActiveSection={handleSetSection} />
-          </main>
-          <Guestbook isHome={true} setActiveSection={handleSetSection} />
+          {activeSection === 'Home' && (
+            <>
+              <main className="flex flex-col md:flex-row justify-between items-start w-full gap-8 md:gap-4 relative">
+                <Hero />
+                <LinkCards setActiveSection={handleSetSection} />
+              </main>
+              <Guestbook isHome={true} setActiveSection={handleSetSection} />
+            </>
+          )}
+
+          {activeSection === 'Projects' && (
+            <Projects />
+          )}
+
+          {activeSection === 'Blog' && (
+            <Blog />
+          )}
+
+          {activeSection === 'About' && (
+            <About />
+          )}
+
+          {activeSection === 'Guestbook' && (
+            <Guestbook />
+          )}
         </>
-      )}
-
-      {activeSection === 'Projects' && (
-        <Projects />
-      )}
-
-      {activeSection === 'Blog' && (
-        <Blog />
-      )}
-
-      {activeSection === 'About' && (
-        <About />
-      )}
-
-      {activeSection === 'Guestbook' && (
-        <Guestbook />
       )}
     </MainLayout>
     </>
