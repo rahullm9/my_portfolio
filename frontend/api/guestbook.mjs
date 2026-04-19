@@ -67,19 +67,29 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     try {
-      const { id, reactionType } = req.body;
-      if (!id || !reactionType) {
-        return res.status(400).json({ error: 'Comment ID and reactionType are required' });
+      const { id, reactionType, oldReactionType } = req.body;
+      if (!id) {
+        return res.status(400).json({ error: 'Comment ID is required' });
       }
 
       const allowedReactions = ['like', 'heart', 'rocket'];
-      if (!allowedReactions.includes(reactionType)) {
-        return res.status(400).json({ error: 'Invalid reaction type' });
+      let updateQuery = { $inc: {} };
+
+      if (reactionType && allowedReactions.includes(reactionType)) {
+        updateQuery.$inc[`reactions.${reactionType}`] = 1;
+      }
+      
+      if (oldReactionType && allowedReactions.includes(oldReactionType)) {
+        updateQuery.$inc[`reactions.${oldReactionType}`] = -1;
+      }
+
+      if (Object.keys(updateQuery.$inc).length === 0) {
+        return res.status(400).json({ error: 'No valid reactions provided' });
       }
 
       const updatedComment = await Guestbook.findByIdAndUpdate(
         id,
-        { $inc: { [`reactions.${reactionType}`]: 1 } },
+        updateQuery,
         { new: true }
       );
 

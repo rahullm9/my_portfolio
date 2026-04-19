@@ -148,31 +148,50 @@ const Guestbook = ({ isHome, setActiveSection }) => {
   };
 
   const handleReaction = async (commentId, type) => {
-    const reactionKey = `reacted_${commentId}_${type}`;
-    if (localStorage.getItem(reactionKey)) return; // Prevent spam
+    const reactionKey = `userReaction_${commentId}`;
+    const oldReaction = localStorage.getItem(reactionKey);
+    
+    // If clicking the same one, remove it. Otherwise swap/set new.
+    const isRemoving = oldReaction === type;
+    const newReaction = isRemoving ? null : type;
 
     // Optimistically update UI
     setComments(prev => prev.map(c => {
       if ((c._id || c.id) === commentId) {
+        const updatedReactions = { ...c.reactions };
+        
+        if (oldReaction) {
+           updatedReactions[oldReaction] = Math.max(0, (updatedReactions[oldReaction] || 0) - 1);
+        }
+        
+        if (newReaction) {
+           updatedReactions[newReaction] = (updatedReactions[newReaction] || 0) + 1;
+        }
+
         return {
           ...c,
-          reactions: {
-            ...c.reactions,
-            [type]: (c.reactions?.[type] || 0) + 1
-          }
+          reactions: updatedReactions
         };
       }
       return c;
     }));
 
-    localStorage.setItem(reactionKey, 'true');
+    if (newReaction) {
+      localStorage.setItem(reactionKey, newReaction);
+    } else {
+      localStorage.removeItem(reactionKey);
+    }
 
     // Send update to backend
     try {
       const response = await fetch(`${API_URL}/api/guestbook`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: commentId, reactionType: type })
+        body: JSON.stringify({ 
+          id: commentId, 
+          reactionType: newReaction, 
+          oldReactionType: oldReaction 
+        })
       });
       if (!response.ok) throw new Error('Reaction failed');
     } catch (error) {
@@ -214,14 +233,14 @@ const Guestbook = ({ isHome, setActiveSection }) => {
                     { type: 'rocket', emoji: '🚀' }
                   ].map(({ type, emoji }) => {
                     const count = comment.reactions?.[type] || 0;
-                    const hasReacted = localStorage.getItem(`reacted_${comment._id || comment.id}_${type}`);
+                    const activeReaction = localStorage.getItem(`userReaction_${comment._id || comment.id}`);
+                    const isSelected = activeReaction === type;
                     return (
                       <button
                         key={type}
                         onClick={() => handleReaction(comment._id || comment.id, type)}
-                        disabled={!!hasReacted}
                         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-medium transition-all ${
-                          hasReacted 
+                          isSelected 
                             ? 'bg-primary/10 text-primary border border-primary/20' 
                             : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#222]'
                         }`}
