@@ -7,6 +7,12 @@
     "build": "cd frontend && npm run build",
     "deploy": "cd frontend && npm run deploy"
   },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.3.1"
+  },
   "devDependencies": {
     "concurrently": "^9.1.2"
   }
