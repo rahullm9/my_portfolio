@@ -3,6 +3,7 @@ import { FiStar } from 'react-icons/fi';
 import project1Img from '../assets/project1.png';
 import clashkingImg from '../assets/clashking.png';
 import findurservice from '../assets/findurservice.png';
+import jobportal from '../assets/jobportal.png';
 
 
 const projectsList = [
@@ -32,6 +33,15 @@ const projectsList = [
     image: findurservice,
     source: "https://github.com/rahullm9/findYourService",
     stack: ["React", "NodeJS", "Tailwind", "CSS"]
+  },
+  {
+    id: 4,
+    title: "Job Portal",
+    year: "2026",
+    description: "This is a full-stack job portal website designed to help users find jobs and companies to hire employees. Built with React (Vite) on the frontend and Express.js with MongoDB on the backend.",
+    image: jobportal,
+    source: "https://github.com/rahullm9/job-portal-mern",
+    stack: ["React", "NodeJS", "Tailwind", "CSS", "MongoDB"]
   },
 
 ];
