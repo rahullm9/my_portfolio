@@ -34,7 +34,11 @@ const skills = {
   ]
 };
 
-const About = () => {
+const About = ({ onLoad }) => {
+  useEffect(() => {
+    if (onLoad) onLoad();
+  }, [onLoad]);
+
   return (
     <div id="about" className="w-full mt-24 mb-10 max-w-[1000px] mx-auto">
       <h2 className="text-3xl font-extrabold font-sans tracking-tight mb-12 text-gray-900 dark:text-white transition-colors duration-300">

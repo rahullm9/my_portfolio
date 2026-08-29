@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FiCommand, FiSun, FiMoon, FiMenu } from 'react-icons/fi';
 import useDarkMode from '../hooks/useDarkMode';
 
-const Navbar = ({ activeSection = 'Home', setActiveSection }) => {
+const Navbar = ({ activeSection = 'Home', setActiveSection, onOpenSearch }) => {
   const [colorTheme, setTheme] = useDarkMode();
   const isDark = colorTheme === 'light'; // If the next theme is light, we are currently in dark mode
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -13,7 +13,13 @@ const Navbar = ({ activeSection = 'Home', setActiveSection }) => {
     <nav className="relative flex justify-between items-center w-full mb-4 md:mb-20 mt-2 md:mt-4 transition-colors">
       {/* Logo */}
       <div className="text-2xl font-bold font-mono tracking-tighter">
-        <a href="/" className="hover:text-primary transition-colors text-gray-900 dark:text-gray-100">~/</a>
+        <button 
+          onClick={onOpenSearch} 
+          className="hover:text-primary transition-colors text-gray-900 dark:text-gray-100 flex items-center"
+        >
+          <span>~</span>
+          <span className="animate-[pulse_1s_ease-in-out_infinite]">/</span>
+        </button>
       </div>
 
       {/* Nav Links (Desktop) */}
@@ -34,7 +40,11 @@ const Navbar = ({ activeSection = 'Home', setActiveSection }) => {
 
         {/* Icons */}
         <div className="flex items-center space-x-3 ml-4">
-          <button className="p-2 rounded-full bg-gray-100 dark:bg-[#111] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+          <button 
+            onClick={onOpenSearch}
+            className="p-2 rounded-full bg-gray-100 dark:bg-[#111] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            title="Search (Ctrl+K)"
+          >
             <FiCommand size={18} />
           </button>
           <button

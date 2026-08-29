@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FiTool } from 'react-icons/fi';
 
-const Blog = () => {
+const Blog = ({ onLoad }) => {
+  useEffect(() => {
+    if (onLoad) onLoad();
+  }, [onLoad]);
+
   return (
     <div id="blog" className="flex-1 flex flex-col items-center justify-center min-h-[60vh] mt-10 md:mt-20 w-full animate-fade-in">
       <div className="relative group mb-10">

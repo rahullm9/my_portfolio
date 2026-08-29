@@ -9,6 +9,7 @@ import Blog from './components/Blog';
 import Guestbook from './components/Guestbook';
 import PageLoader from './components/PageLoader';
 import ContentLoader from './components/ContentLoader';
+import CommandPalette from './components/CommandPalette';
 
 function App() {
   const [activeSection, setActiveSection] = useState(() => {
@@ -20,7 +21,20 @@ function App() {
     if (savedSection && sections.includes(savedSection)) return savedSection;
     return 'Home';
   });
-  const [isPageChanging, setIsPageChanging] = useState(false);
+  const [isLoadingSection, setIsLoadingSection] = useState(true);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  React.useEffect(() => {
+    // Command Palette Keyboard Shortcut
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   React.useEffect(() => {
     // Handle back/forward navigation or manual hash changes
@@ -43,7 +57,9 @@ function App() {
 
   const handleSetSection = (section) => {
     if (section === activeSection) return;
-    setIsPageChanging(true);
+    setIsLoadingSection(true);
+    
+    // Allow React to batch the loading state before changing the section
     setTimeout(() => {
       setActiveSection(section);
       localStorage.setItem('last_section', section);
@@ -52,47 +68,57 @@ function App() {
       } else {
         window.location.hash = section.toLowerCase();
       }
-      setIsPageChanging(false);
-    }, 300);
+    }, 10);
   };
 
-  return (
+  const handleSectionLoaded = () => {
+    setIsLoadingSection(false);
+  };
+
+    return (
     <>
-      <PageLoader isLoading={isPageChanging} />
+      <PageLoader isLoading={isLoadingSection} />
+      <CommandPalette 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSelect={handleSetSection} 
+      />
       <MainLayout>
-      <Navbar activeSection={activeSection} setActiveSection={handleSetSection} />
+      <Navbar 
+        activeSection={activeSection} 
+        setActiveSection={handleSetSection} 
+        onOpenSearch={() => setIsSearchOpen(true)} 
+      />
       
-      {isPageChanging ? (
-        <ContentLoader />
-      ) : (
-        <>
-          {activeSection === 'Home' && (
-            <>
-              <main className="flex flex-col md:flex-row justify-between items-start w-full gap-8 md:gap-4 relative">
-                <Hero />
-                <LinkCards setActiveSection={handleSetSection} />
-              </main>
-              <Guestbook isHome={true} setActiveSection={handleSetSection} />
-            </>
-          )}
+      {isLoadingSection && <ContentLoader />}
+      
+      <div className={isLoadingSection ? 'hidden' : 'block'}>
+        {activeSection === 'Home' && (
+          <>
+            <main className="flex flex-col md:flex-row justify-between items-start w-full gap-8 md:gap-4 relative">
+              <Hero />
+              <LinkCards setActiveSection={handleSetSection} />
+            </main>
+            <Guestbook isHome={true} setActiveSection={handleSetSection} onLoad={handleSectionLoaded} />
+          </>
+        )}
 
-          {activeSection === 'Projects' && (
-            <Projects />
-          )}
+        {activeSection === 'Projects' && (
+          <Projects onLoad={handleSectionLoaded} />
+        )}
 
-          {activeSection === 'Blog' && (
-            <Blog />
-          )}
+        {activeSection === 'Blog' && (
+          <Blog onLoad={handleSectionLoaded} />
+        )}
 
-          {activeSection === 'About' && (
-            <About />
-          )}
+        {activeSection === 'About' && (
+          <About onLoad={handleSectionLoaded} />
+        )}
 
-          {activeSection === 'Guestbook' && (
-            <Guestbook />
-          )}
-        </>
-      )}
+        {activeSection === 'Guestbook' && (
+          <Guestbook onLoad={handleSectionLoaded} />
+        )}
+      </div>
     </MainLayout>
     </>
   );

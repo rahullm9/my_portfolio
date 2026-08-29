@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-const Guestbook = ({ isHome, setActiveSection }) => {
+const Guestbook = ({ isHome, setActiveSection, onLoad }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [activeTab, setActiveTab] = useState('write');
@@ -41,8 +41,11 @@ const Guestbook = ({ isHome, setActiveSection }) => {
       .catch(err => {
         console.error('Failed to load comments:', err);
       })
-      .finally(() => setIsLoading(false));
-  }, []);
+      .finally(() => {
+        setIsLoading(false);
+        if (onLoad) onLoad();
+      });
+  }, [onLoad]);
 
   const isValidFormat = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);

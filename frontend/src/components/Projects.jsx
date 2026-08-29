@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FiStar } from 'react-icons/fi';
 import project1Img from '../assets/project1.png';
 import clashkingImg from '../assets/clashking.png';
@@ -46,7 +46,11 @@ const projectsList = [
 
 ];
 
-const Projects = () => {
+const Projects = ({ onLoad }) => {
+  useEffect(() => {
+    if (onLoad) onLoad();
+  }, [onLoad]);
+
   return (
     <div id="projects" className="w-full mt-24 mb-10 max-w-[1000px] mx-auto">
       <h2 className="text-2xl font-bold font-sans tracking-tight mb-8 text-gray-900 dark:text-white transition-colors duration-300">

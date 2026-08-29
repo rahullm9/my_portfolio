@@ -7,7 +7,7 @@ const connectDB = async () => {
       return;
     }
     const conn = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`MongoDB Connected`);
   } catch (error) {
     console.error(`Database Connection Error: ${error.message}`);
     // Do not call process.exit(1) in a serverless function context as it can lead to opaque 500 errors
